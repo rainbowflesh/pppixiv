@@ -2471,9 +2471,6 @@ body.hide-r18g .r18g {
       width: inherit;
     }
 
-    .ctx-icon {
-    }
-
     .count {
       color: white;
       text-shadow:
@@ -2484,20 +2481,12 @@ body.hide-r18g .r18g {
       font-size: 0.7em;
       font-weight: bold;
       width: 100%;
-      text-align: center;
       position: absolute;
-      top: -4px;
-      left: -8px;
     }
 
     svg {
       height: var(--button-size-small);
       width: var(--button-size-small);
-    }
-
-    .button-zoom-level,
-    .button-browser-back,
-    .button-zoom-level svg {
       margin-right: 4px;
     }
 

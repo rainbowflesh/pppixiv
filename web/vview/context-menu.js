@@ -44,22 +44,12 @@ const ContextMenuTemplate = `
 		<div id="context-menu-image-info-container context-menu-item"></div>
 	</div>
 	<div id="context-menu-buttons-group">
-		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public data-popup="Bookmark Image">
-			<ppixiv-inline class="ctx-icon" src="resources/heart-icon.svg"></ppixiv-inline>
-		</vv-container>
-
-		<vv-container class="context-menu-item button-bookmark-private button-bookmark" data-bookmark-type=private
-			data-popup="Bookmark Privately">
-			<ppixiv-inline class="ctx-icon" src="resources/heart-icon-private.svg"></ppixiv-inline>
-		</vv-container>
-
-		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags" style="display:none">
-			${helpers.createIcon("ppixiv:tag")}
+				<div class="like-button-container"></div>
+		<div class="bookmark-button-container" data-bookmark-type=public>
+		</div>
+		<div class="bookmark-button-container" data-bookmark-type=private>
 		</div>
 
-		<vv-container class="context-menu-item button-container button-like-container" data-popup="Like Image">
-			<ppixiv-inline class="ctx-icon" src="resources/like-button.svg"></ppixiv-inline>
-		</vv-container>
 
 		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen" style="display:none">
 			<ppixiv-inline class="ctx-icon" src="resources/fullscreen.svg"></ppixiv-inline>
@@ -98,7 +88,9 @@ const ContextMenuTemplate = `
 		<div class="context-menu-item button button-parent-folder enabled" data-popup="Parent folder" hidden>
 			${helpers.createIcon("folder")}
 		</div>
-
+		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags" hidden>
+			${helpers.createIcon("ppixiv:tag")}
+		</div>
 		<div class="context-menu-item view-in-explorer" hidden></div>
 	</div>
 </div>
@@ -319,10 +311,11 @@ export default class ContextMenu extends Widget {
 		const illustWidgets = [
 			this.avatarWidget,
 			new LikeButtonWidget({
-				container: this.root.querySelector(".button-like-container"),
+				container: this.root.querySelector(".like-button-container"),
 				template: `
-                    <div class="button button-like enabled" style="position: relative;">
-                    </div>
+                    <vv-container class="context-menu-item button-container button-like-container" data-popup="Like Image">
+						<ppixiv-inline class="ctx-icon" src="resources/like-button.svg"></ppixiv-inline>
+					</vv-container>
                 `,
 			}),
 			new ImageInfoWidget({
@@ -346,14 +339,16 @@ export default class ContextMenu extends Widget {
 		this.bookmarkButtons = [];
 		for (const a of this.root.querySelectorAll("[data-bookmark-type]")) {
 			// The bookmark buttons, and clicks in the tag dropdown:
+			const type = a.dataset.bookmarkType;
 			const bookmarkWidget = new BookmarkButtonWidget({
 				container: a,
 				// position: relative positions the bookmark count.
 				template: `
-                    <div class="button button-bookmark ${a.dataset.bookmarkType}">
-                    </div>
+                    <vv-container class="context-menu-item button-bookmark" data-popup="${type === "public" ? "Bookmark Image" : "Bookmark Privately"}">
+						<ppixiv-inline class="ctx-icon" src="resources/heart-icon${type === "private" ? "-private" : ""}.svg"></ppixiv-inline>
+					</vv-container>
                 `,
-				bookmarkType: a.dataset.bookmarkType,
+				bookmarkType: type,
 			});
 
 			this.bookmarkButtons.push(bookmarkWidget);
@@ -648,18 +643,7 @@ export default class ContextMenu extends Widget {
 		e.stopPropagation();
 	};
 
-	// Override ctrl-clicks inside the context menu.
-	//
-	// This is a bit annoying.  Ctrl-clicking a link opens it in a tab, but we allow opening the
-	// context menu by holding ctrl, which means all clicks are ctrl-clicks if you use the popup
-	// that way.  We work around this by preventing ctrl-click from opening links in a tab and just
-	// navigate normally.  This is annoying since some people might like opening tabs that way, but
-	// there's no other obvious solution other than changing the popup menu hotkey.  That's not a
-	// great solution since it needs to be on Ctrl or Alt, and Alt causes other problems, like showing
-	// the popup menu every time you press alt-left.
-	//
-	// This only affects links inside the context menu, which is currently only the author link, and
-	// most people probably use middle-click anyway, so this will have to do.
+	// Override ctrl-clicks inside the context menu by convert all click event to ctrl-click
 	_handleLinkClick = (e) => {
 		// Do nothing if opening the popup while holding ctrl is disabled.
 		if (!ppixiv.settings.get("ctrl_opens_popup")) return;
@@ -1092,7 +1076,7 @@ export default class ContextMenu extends Widget {
 				"enabled",
 				this._parentFolderId != null,
 			);
-			this.querySelector(".button-bookmark-private").hidden = isLocal;
+			this.querySelector("[data-bookmark-type=private]").hidden = isLocal;
 		}
 
 		if (this._isZoomUiEnabled) {

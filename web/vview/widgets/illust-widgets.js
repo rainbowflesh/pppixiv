@@ -352,11 +352,7 @@ export class LikeButtonWidget extends IllustWidget {
 		helpers.html.setClass(this.root, "enabled", !likedRecently);
 
 		this.root.dataset.popup =
-			this._mediaId == null
-				? ""
-				: likedRecently
-					? "Already liked image"
-					: "Like image";
+			this._mediaId == null ? "" : likedRecently ? "Image liked" : "Like image";
 	}
 
 	clickedLike = (e) => {
