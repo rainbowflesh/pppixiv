@@ -300,7 +300,6 @@ class UI extends Widget {
                     ${helpers.createBoxLink({ label: "Search mode", classes: ["search-type-button"] })}
                     ${helpers.createBoxLink({ label: "Newest", classes: ["sort-button"] })}
                     ${helpers.createBoxLink({ label: "Tags", popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] })}
-                    ${helpers.createBoxLink({ label: "Follow", classes: ["follow-button"] })}
                 </div>
             </div>
         `,
@@ -317,7 +316,7 @@ class UI extends Widget {
 			this._signal,
 		);
 
-		let urlFormat = "users/id/type/tag";
+		const urlFormat = "users/id/type/tag";
 		dataSource.setupDropdown(this.querySelector(".search-type-button"), [
 			{
 				createOptions: { label: "Works" },
