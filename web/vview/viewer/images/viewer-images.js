@@ -1621,15 +1621,11 @@ class ImagesContainer extends Widget {
 	}
 
 	setImageUrls({ imageUrl, inpaintUrl, translationUrl, previewUrl }) {
-		// Work around an ancient legacy browser mess: img.src is "" by default (no image), but if
-		// you set it back to "", it ends up being resolved as an empty URL and getting set to window.location,
-		// and causing bogus network requests and errors.  We have to manually remove the attribute
-		// instead to work around this.
+		// prevent shakes
 		function setImageSource(img, src) {
 			if (src) img.src = src;
 			else img.removeAttribute("src");
 		}
-
 		setImageSource(this.mainImage, imageUrl);
 		setImageSource(this.inpaintImage, inpaintUrl);
 		setImageSource(this.translationImage, translationUrl);

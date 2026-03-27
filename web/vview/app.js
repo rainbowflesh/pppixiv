@@ -826,17 +826,17 @@ export default class App {
 		// in debug, these are all blob URLs.
 		ppixiv.resources = {};
 
-		for (let [path, value] of Object.entries(getResources())) {
-			let filename = new URL(path, ppixiv.plocation).pathname;
-			let binary = filename.endsWith(".png") || filename.endsWith(".woff");
+		for (const [path, value] of Object.entries(getResources())) {
+			const filename = new URL(path, ppixiv.plocation).pathname;
+			const binary = filename.endsWith(".png") || filename.endsWith(".woff");
 			if (!binary) {
 				// Just store text resources directly.
 				ppixiv.resources[path] = value;
 				continue;
 			}
 
-			let blob = new Blob([value]);
-			let url = URL.createObjectURL(blob);
+			const blob = new Blob([value]);
+			const url = URL.createObjectURL(blob);
 			ppixiv.resources[path] = url;
 		}
 	}

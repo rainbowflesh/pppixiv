@@ -194,7 +194,7 @@ export default class DesktopImageInfo extends Widget {
 			},
 		});
 
-		for (let button of this.root.querySelectorAll(".download-button"))
+		for (const button of this.root.querySelectorAll(".download-button"))
 			button.addEventListener("click", this.clickedDownload);
 		this.root
 			.querySelector(".download-manga-button")
@@ -204,7 +204,7 @@ export default class DesktopImageInfo extends Widget {
 			.addEventListener("click", (e) => {
 				if (this.mediaId == null) return;
 
-				let args = getUrlForMediaId(this.mediaId, { manga: true });
+				const args = getUrlForMediaId(this.mediaId, { manga: true });
 				helpers.navigate(args);
 			});
 

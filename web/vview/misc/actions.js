@@ -542,17 +542,17 @@ export default class Actions {
 	//
 	// Download mediaInfo.
 	static async downloadIllust(mediaId, downloadType) {
-		let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId);
-		let userInfo = await ppixiv.userCache.getUserInfo(mediaInfo.userId);
+		const mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId);
+		const userInfo = await ppixiv.userCache.getUserInfo(mediaInfo.userId);
 		console.log(`Download ${mediaId} with type $[downloadType}`);
 
-		if (downloadType == "MKV") {
+		if (downloadType === "MKV") {
 			new PixivUgoiraDownloader(mediaInfo);
 			return;
 		}
 
-		if (downloadType !== "image" && downloadType != "ZIP") {
-			console.error("Unknown download type " + downloadType);
+		if (downloadType !== "image" && downloadType !== "ZIP") {
+			console.error(`Unknown download type ${downloadType}`);
 			return;
 		}
 
@@ -581,21 +581,21 @@ export default class Actions {
 				const translatedCanvas =
 					await ppixiv.imageTranslations.getTranslatedImage(pageMediaId);
 				if (translatedCanvas != null) {
-					let blob = await helpers.other.canvasToBlob(translatedCanvas, {
+					const blob = await helpers.other.canvasToBlob(translatedCanvas, {
 						type: "image/jpeg",
-						quality: 0.95,
+						quality: 1,
 					});
-					let result = await blob.arrayBuffer();
+					const result = await blob.arrayBuffer();
 					result.extension = "jpg";
 					results.push(result);
 					continue;
 				}
 
 				// Download the image normally.
-				let url = mediaInfo.mangaPages[page].urls.original;
-				let result = await downloadPixivImage(url);
-				result.extension = helpers.strings.getExtension(url);
-				results.push(result);
+				const url = mediaInfo.mangaPages[page].urls.original;
+				const { buffer, mimeType } = await downloadPixivImage(url);
+				buffer.extension = helpers.strings.getExtension(url);
+				results.push(buffer);
 			}
 		} catch (e) {
 			ppixiv.message.show(e.toString());

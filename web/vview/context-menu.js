@@ -36,6 +36,7 @@ import {
 	KeyListener,
 	OpenWidgets,
 } from "/vview/misc/helpers.js";
+import { downloadPixivImage } from "/vview/util/gm-download.js";
 
 const ContextMenuTemplate = `
 <div id="popup-context-menu">
@@ -44,26 +45,21 @@ const ContextMenuTemplate = `
 		<div id="context-menu-image-info-container context-menu-item"></div>
 	</div>
 	<div id="context-menu-buttons-group">
-				<div class="like-button-container"></div>
+		<div class="context-menu-item copy-button" data-popup="Copy Image" hidden></div>
+		<div class="context-menu-item download-button download-image-button popup pixiv-only" data-download="image"
+			data-popup="Download image" hidden>
+			<ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+		</div>
+
+		<div class="context-menu-item download-button download-video-button popup pixiv-only" data-download="MKV"
+			data-popup="Download MKV" hidden>
+			<ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+		</div>
+
+		<div class="like-button-container"></div>
 		<div class="bookmark-button-container" data-bookmark-type=public>
 		</div>
 		<div class="bookmark-button-container" data-bookmark-type=private>
-		</div>
-
-
-		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen" style="display:none">
-			<ppixiv-inline class="ctx-icon" src="resources/fullscreen.svg"></ppixiv-inline>
-		</div>
-
-		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom"
-			style="display:none">
-			<ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
-			<ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
-		</div>
-
-		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="cover"
-			data-popup="Zoom to cover" style="display:none">
-			<ppixiv-inline class="ctx-icon" src="resources/zoom-full.svg" style="margin-right: 4px;"></ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="actual"
@@ -81,10 +77,23 @@ const ContextMenuTemplate = `
 		</div>
 
 		<div class="context-menu-item button button-browser-back enabled" data-popup="Back">
-			<ppixiv-inline class="ctx-icon" src="resources/exit-icon.svg" style="transform: scaleX(-1); margin-right: 4px;">
+			<ppixiv-inline class="ctx-icon" src="resources/exit-icon.svg"
+				style="transform: scaleX(-1); margin-right: 4px;">
 			</ppixiv-inline>
 		</div>
 
+		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom"
+			style="display:none">
+			<ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
+			<ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
+		</div>
+		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="cover"
+			data-popup="Zoom to cover" style="display:none">
+			<ppixiv-inline class="ctx-icon" src="resources/zoom-full.svg" style="margin-right: 4px;"></ppixiv-inline>
+		</div>
+		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen" style="display:none">
+			<ppixiv-inline class="ctx-icon" src="resources/fullscreen.svg"></ppixiv-inline>
+		</div>
 		<div class="context-menu-item button button-parent-folder enabled" data-popup="Parent folder" hidden>
 			${helpers.createIcon("folder")}
 		</div>
@@ -110,6 +119,7 @@ export default class ContextMenu extends Widget {
 		this.hide = this.hide.bind(this);
 		this._currentViewer = null;
 		this._mediaId = null;
+		this._mediaInfo = this._getMediaInfo();
 
 		this._buttonsDown = {};
 
@@ -125,50 +135,17 @@ export default class ContextMenu extends Widget {
 
 		this.root.ontransitionend = () => this.callVisibilityChanged();
 
-		this._initButtonListener();
-
 		this._buttonViewManga = this.root.querySelector(".button-view-manga");
 
 		this._buttonFullscreen = this.root.querySelector(".button-fullscreen");
-		this._buttonFullscreen.addEventListener("click", this._clickedFullscreen);
 
-		this.root
-			.querySelector(".button-zoom")
-			.addEventListener("click", this._clickedToggleZoom);
-		this.root
-			.querySelector(".button-browser-back")
-			.addEventListener("click", (e) => {
-				e.preventDefault();
-				e.stopPropagation();
+		this._downloadImageButton = this.root.querySelector(
+			".download-image-button",
+		);
+		this._downloadVideoButton = this.root.querySelector(
+			".download-video-button",
+		);
 
-				ppixiv.phistory.back();
-			});
-
-		this.root.addEventListener("click", this._handleLinkClick);
-		this.root
-			.querySelector(".button-parent-folder")
-			.addEventListener("click", this.clicked_go_to_parent);
-
-		for (const button of this.root.querySelectorAll(".button-zoom-level"))
-			button.addEventListener("click", this._clickedZoomLevel);
-
-		this.avatarWidget = new AvatarWidget({
-			container: this.root.querySelector(".avatar-widget-container"),
-			mode: "overlay",
-		});
-
-		this._createMoreOptionsButtons();
-
-		this.getMediaInfo = this._getMediaInfo();
-
-		this.illustWidgets = this._createIllustWidget();
-
-		this._createCtxMenuItemDescription();
-
-		this.refresh();
-	}
-
-	_initButtonListener() {
 		this.pointerListener = new PointerListener({
 			element: window,
 			buttonMask: 0b11,
@@ -188,7 +165,125 @@ export default class ContextMenu extends Widget {
 
 			this._setTemporaryIllust(null);
 		});
+
+		this.root.addEventListener("click", this._handleLinkClick);
+
+		this._buttonFullscreen.addEventListener("click", this._clickedFullscreen);
+
+		this.root
+			.querySelector(".button-zoom")
+			.addEventListener("click", this._clickedToggleZoom);
+		this.root
+			.querySelector(".button-browser-back")
+			.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				ppixiv.phistory.back();
+			});
+
+		this.root
+			.querySelector(".button-parent-folder")
+			.addEventListener("click", this.clicked_go_to_parent);
+
+		for (const button of this.root.querySelectorAll(".button-zoom-level"))
+			button.addEventListener("click", this._clickedZoomLevel);
+
+		for (const button of this.root.querySelectorAll(".download-button"))
+			button.addEventListener("click", this._handleDownloadButtonClick);
+
+		// 复用一个离屏 canvas，避免重复创建
+		this._offscreenCanvas = document.createElement("canvas");
+		this._ctx = this._offscreenCanvas.getContext("2d");
+
+		this.root
+			.querySelector(".copy-button")
+			.addEventListener("click", (e) => this._copyImageToClipboard(e));
+
+		this.avatarWidget = new AvatarWidget({
+			container: this.root.querySelector(".avatar-widget-container"),
+			mode: "overlay",
+		});
+
+		this._createMoreOptionsButtons();
+
+		this.illustWidgets = this._createIllustWidget();
+
+		this._createCtxMenuItemDescription();
+
+		this.refresh();
 	}
+
+	// 辅助函数：异步加载图片
+	async loadImageAsync(src) {
+		return new Promise((resolve, reject) => {
+			const img = document.createElement("img");
+			img.src = src;
+
+			img.onload = () => resolve(img);
+			img.onerror = (e) => reject(new Error("Image load failed"));
+		});
+	}
+
+	async _copyImageToClipboard() {
+		if (!this._mediaInfo) return;
+
+		const url = this._mediaInfo?._info.mediaInfo._info.urls.regular;
+		try {
+			const { buffer, mimeType } = await downloadPixivImage(url);
+
+			// 创建 Blob 并生成临时 URL
+			const blob = new Blob([buffer], { type: mimeType });
+			const imageUrl = URL.createObjectURL(blob);
+
+			// 加载图片
+			const img = await this.loadImageAsync(imageUrl);
+
+			// 设置 canvas 尺寸并绘制图片
+			this._offscreenCanvas.width = img.width;
+			this._offscreenCanvas.height = img.height;
+			this._ctx.drawImage(img, 0, 0);
+
+			// 导出为 PNG
+			this._offscreenCanvas.toBlob(async (pngBlob) => {
+				try {
+					// 释放 canvas 内容（可选）
+					this._offscreenCanvas.width = 0;
+					this._offscreenCanvas.height = 0;
+
+					// 释放图片和 blob URL
+					img.src = ""; // 清除引用
+					URL.revokeObjectURL(imageUrl);
+
+					// 复制到剪贴板
+					const clipboardItem = new ClipboardItem({ "image/png": pngBlob });
+					await navigator.clipboard.write([clipboardItem]);
+
+					console.log("Image copied to clipboard.");
+					ppixiv.message.show("Image copied to clipboard");
+				} catch (writeError) {
+					console.error("Failed to write to clipboard:", writeError);
+					ppixiv.message.show("Clipboard write error");
+				}
+			}, "image/png");
+		} catch (e) {
+			console.error("Failed to copy image: ", e);
+			ppixiv.message.show("Failed to copy image");
+		}
+	}
+
+	_handleDownloadButtonClick = (e) => {
+		if (this._mediaId == null) return;
+
+		const clickedButton = e.target.closest(".download-button");
+		if (clickedButton == null) return;
+
+		e.preventDefault();
+		e.stopPropagation();
+
+		const downloadType = clickedButton.dataset.download;
+		Actions.downloadIllust(this._mediaId, downloadType, this.displayedPage);
+	};
 
 	_createCtxMenuItemDescription() {
 		const elements = this.root.querySelectorAll(".context-menu-item");
@@ -268,10 +363,32 @@ export default class ContextMenu extends Widget {
 			parent: this,
 			neededData: "full",
 			onrefresh: async ({ mediaInfo }) => {
+				this._createCopyImageButton(mediaInfo);
 				this._createManageViewButton(mediaInfo);
+				this._createDownloadImageButton(mediaInfo);
 			},
 		});
+		this._mediaInfo = mediaInfo;
+		console.log(this._mediaInfo);
 		return mediaInfo;
+	}
+
+	_createCopyImageButton(mediaInfo) {
+		this.querySelector(".copy-button").hidden = mediaInfo == null;
+	}
+
+	_createDownloadImageButton(mediaInfo) {
+		if (mediaInfo) {
+			this._downloadImageButton.hidden = !Actions.isDownloadTypeAvailable(
+				"image",
+				mediaInfo,
+			);
+
+			this._downloadVideoButton.hidden = !Actions.isDownloadTypeAvailable(
+				"MKV",
+				mediaInfo,
+			);
+		}
 	}
 
 	_createManageViewButton(mediaInfo) {
@@ -684,9 +801,14 @@ export default class ContextMenu extends Widget {
 		return this.getUserIdFromMediaId.info.userId;
 	}
 
+	setMediaInfo(mediaInfo) {
+		if (this._mediaInfo === mediaInfo) return;
+		this._mediaInfo = mediaInfo;
+		this.refresh();
+	}
+
 	setMediaId(mediaId) {
 		if (this._mediaId === mediaId) return;
-
 		this._mediaId = mediaId;
 		this.getUserIdFromMediaId.id = this._clickedMediaId ?? this._mediaId;
 		this.refresh();
@@ -1014,7 +1136,7 @@ export default class ContextMenu extends Widget {
 	// Update selection highlight for the context menu.
 	refresh() {
 		const mediaId = this._effectiveMediaId;
-		if (this.visible) this.getMediaInfo.id = mediaId;
+		if (this.visible) this._mediaInfo.id = mediaId;
 
 		// If we're not visible, don't refresh an illust until we are, so we don't trigger
 		// data loads.  Do refresh even if we're hidden if we have no illust to clear
@@ -1059,6 +1181,7 @@ export default class ContextMenu extends Widget {
 				const showingViewedImage = this._clickedMediaId == null;
 				widget.showPageNumber = showingViewedImage;
 			}
+			this.setMediaInfo(this._mediaInfo);
 
 			// If we're on a local ID, show the parent folder button.  Otherwise, show the
 			// author button.  We only show one or the other of these.

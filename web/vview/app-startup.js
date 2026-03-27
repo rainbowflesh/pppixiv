@@ -565,11 +565,11 @@ class AppStartup {
 			// with these (and since we can't write to these, it wouldn't be able to either).
 		}
 
+		// !DANGER
+		// override internal functions
 		window.realImage = window.Image;
-		window.Image = function () {};
+		window.Image = () => {};
 
-		// Replace window.fetch with a dummy to prevent some requests from happening.  Store it
-		// in realFetch so we can use it.
 		window.realFetch = window.fetch;
 
 		class dummy_fetch {
@@ -578,12 +578,9 @@ class AppStartup {
 			}
 		}
 		dummy_fetch.prototype.ok = true;
-		window.fetch = function () {
-			return new dummy_fetch();
-		};
 
-		// We don't use XMLHttpRequest.  Disable it to make sure the page doesn't.
-		window.XMLHttpRequest = function () {};
+		window.fetch = () => new dummy_fetch();
+		window.XMLHttpRequest = () => {};
 
 		// Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
 		// we can't disable keep running and do things like loading more scripts or adding stylesheets.

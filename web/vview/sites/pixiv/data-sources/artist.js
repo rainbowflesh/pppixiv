@@ -129,16 +129,19 @@ export default class DataSources_Artist extends DataSource {
 			// This data doesn't have profileImageUrl or userName.  That's presumably because it's
 			// used on user pages which get that from user data, but this seems like more of an
 			// inconsistency than an optimization.  Fill it in for mediaInfo.
-			for (let item of result.body.works) {
+			for (let item of result?.body?.works) {
 				item.userName = this.userInfo.name;
 				item.profileImageUrl = this.userInfo.imageBig;
 			}
 
 			let mediaIds = [];
-			for (let illustData of result.body.works)
+			for (let illustData of result?.body?.works)
 				mediaIds.push(helpers.mediaId.fromIllustId(illustData.id));
 
-			await ppixiv.mediaCache.addMediaInfosPartial(result.body.works, "normal");
+			await ppixiv.mediaCache.addMediaInfosPartial(
+				result?.body?.works,
+				"normal",
+			);
 
 			return { mediaIds };
 		}
@@ -160,9 +163,9 @@ export default class DataSources_Artist extends DataSource {
 
 		let illustIds = [];
 		if (type == "artworks" || type == "illustrations")
-			for (let illustId in result.body.illusts) illustIds.push(illustId);
+			for (let illustId in result?.body?.illusts) illustIds.push(illustId);
 		if (type == "artworks" || type == "manga")
-			for (let illustId in result.body.manga) illustIds.push(illustId);
+			for (let illustId in result?.body?.manga) illustIds.push(illustId);
 
 		// Sort the two sets of IDs back together, putting higher (newer) IDs first.
 		illustIds.sort((lhs, rhs) => parseInt(rhs) - parseInt(lhs));
@@ -256,13 +259,13 @@ export default class DataSources_Artist extends DataSource {
 		}
 
 		// Sort most frequent tags first.
-		result.body.sort(function (lhs, rhs) {
+		result?.body?.sort(function (lhs, rhs) {
 			return rhs.cnt - lhs.cnt;
 		});
 
 		// Store translations.
 		let translations = [];
-		for (let tagInfo of result.body) {
+		for (let tagInfo of result?.body) {
 			if (tagInfo.tag_translation == "") continue;
 
 			translations.push({
@@ -275,7 +278,7 @@ export default class DataSources_Artist extends DataSource {
 		ppixiv.tagTranslations.addTranslations(translations);
 
 		// Cache the results on the user info.
-		userInfo.frequentTags = result.body;
+		userInfo.frequentTags = result?.body;
 		return Array.from(userInfo.frequentTags);
 	}
 
